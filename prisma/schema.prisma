@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model SystemState {
+  id                  Int      @id @default(1)
+  killSwitch          Boolean  @default(false)
+  fitness             Float    @default(32)
+  attackerCost        Float    @default(48)
+  businessLoss        Float    @default(10)
+  physicalRisk        Float    @default(1.5)
+  businessBudget      Float    @default(24)
+  physicalBudget      Float    @default(5)
+  falsePositiveBudget Float    @default(18)
+  tick                Int      @default(0)
+  catalogSize         Int      @default(15)
+  updatedAt           DateTime @updatedAt
+}
+
+model Tenant {
+  id        String          @id
+  name      String
+  kind      String
+  narrative String
+  modules   ModuleState[]
+  readings  SensorReading[]
+}
+
+model SensorReading {
+  id        String   @id
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  kind      String
+  summary   String
+  metrics   String
+  createdAt DateTime @default(now())
+}
+
+model HoldoutCase {
+  id         String  @id
+  moduleSlug String
+  label      String
+  desired    String
+  behavior   String
+  frozen     Boolean @default(true)
+}
+
+model Antibody {
+  id         String   @id @default(cuid())
+  moduleSlug String
+  version    Int
+  actuator   String
+  params     String
+  fitness    Float
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model ModuleState {
+  id             String   @id
+  name           String
+  domain         String
+  osRole         String
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  phase          String
+  canAuto        String
+  mustAsk        String
+  observation    String   @default("{}")
+  inference      String   @default("{}")
+  proposal       String   @default("{}")
+  evaluation     String   @default("{}")
+  domainState    String   @default("{}")
+  previousDomain String   @default("{}")
+  status         String
+  gateReason     String   @default("")
+  updatedAt      DateTime @updatedAt
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  at         DateTime @default(now())
+  actor      String
+  moduleSlug String
+  action     String
+  detail     String
+}
+
+model GovernanceProposal {
+  id        String   @id @default(cuid())
+  kind      String
+  title     String
+  detail    String
+  status    String   @default("pending")
+  merged    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
