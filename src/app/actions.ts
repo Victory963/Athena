@@ -14,6 +14,7 @@ import {
 
 async function refresh(slug?: string) {
   revalidatePath("/");
+  revalidatePath("/os");
   revalidatePath("/audit");
   if (slug) revalidatePath(`/modules/${slug}`);
 }

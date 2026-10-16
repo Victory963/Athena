@@ -10,3 +10,253 @@ body {
 table {
   border-collapse: collapse;
 }
+
+.athena-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #101114;
+  color: #f3efe6;
+}
+
+.athena-app .athena-me {
+  font-size: 18px;
+  width: min(340px, 100%);
+}
+
+.athena-app .athena-you {
+  width: min(340px, 100%);
+}
+
+.athena-shell.mood-watching {
+  background: #0e1612;
+}
+
+.athena-shell.mood-gated {
+  background: #16140c;
+}
+
+.athena-shell.mood-kill {
+  background: #160e0e;
+}
+
+.athena-top {
+  -webkit-app-region: drag;
+}
+
+.athena-nav,
+.athena-close,
+.athena-orb,
+.athena-consent,
+.athena-input,
+.athena-input input,
+.athena-input button {
+  -webkit-app-region: no-drag;
+}
+
+.athena-close {
+  border: 0;
+  background: transparent;
+  color: #8a8478;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.athena-top,
+.athena-foot {
+  padding: 20px 28px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.athena-foot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding-bottom: 64px;
+}
+
+.athena-name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.athena-meta,
+.athena-caption {
+  color: #8a8478;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.athena-nav {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.athena-nav a {
+  color: #b7b1a6;
+  text-decoration: none;
+}
+
+.athena-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 28px 20px;
+}
+
+.athena-orb {
+  width: 220px;
+  height: 220px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.athena-core {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #ffffff 0%, #e7e1d6 28%, #9a9488 62%, #2c2a26 100%);
+  box-shadow: 0 0 48px rgba(243, 239, 230, 0.16);
+}
+
+.mood-watching .athena-core {
+  background: radial-gradient(circle at 38% 32%, #f4fff4 0%, #b7d2b4 34%, #3d5c45 70%, #152018 100%);
+  box-shadow: 0 0 52px rgba(157, 190, 152, 0.28);
+}
+
+.mood-gated .athena-core {
+  background: radial-gradient(circle at 38% 32%, #fff8e8 0%, #e7c27a 34%, #8a6230 70%, #24180c 100%);
+  box-shadow: 0 0 52px rgba(224, 177, 90, 0.28);
+}
+
+.mood-kill .athena-core {
+  width: 96px;
+  height: 96px;
+  background: radial-gradient(circle at 38% 32%, #ffe8e4 0%, #d26a5c 36%, #6e2e28 72%, #1a0e0e 100%);
+  box-shadow: 0 0 40px rgba(210, 106, 92, 0.24);
+}
+
+.mood-thinking .athena-core {
+  animation: athena-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes athena-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.athena-caption {
+  margin: 18px 0 22px;
+}
+
+.athena-log {
+  width: min(720px, 100%);
+  max-height: 34vh;
+  overflow: auto;
+}
+
+.athena-me,
+.athena-you {
+  width: min(640px, 100%);
+  margin: 0 0 10px;
+  line-height: 1.45;
+}
+
+.athena-me {
+  font-family: Georgia, "Songti SC", serif;
+  font-size: 22px;
+  text-align: center;
+}
+
+.athena-you {
+  color: #8a8478;
+  font-size: 13px;
+  text-align: center;
+}
+
+.athena-ideas {
+  width: min(720px, 100%);
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  max-height: 22vh;
+  overflow: auto;
+}
+
+.athena-ideas li {
+  border-top: 1px solid #2a2824;
+  padding-top: 8px;
+  display: grid;
+  gap: 2px;
+}
+
+.athena-ideas b {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.athena-ideas span {
+  color: #9a9488;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.athena-consent {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #9a9488;
+}
+
+.athena-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.athena-prompts button,
+.athena-input button {
+  background: transparent;
+  color: #ece7dc;
+  border: 1px solid #3a372f;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.athena-input {
+  display: flex;
+  gap: 8px;
+}
+
+.athena-input input {
+  flex: 1;
+  background: #111114;
+  border: 1px solid #3a372f;
+  color: #ece7dc;
+  border-radius: 999px;
+  padding: 12px 16px;
+  outline: none;
+}

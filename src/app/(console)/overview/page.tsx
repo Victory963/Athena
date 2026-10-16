@@ -30,6 +30,19 @@ export default function OverviewPage() {
       </section>
       <ul className="list-disc space-y-1 pl-5 text-sm">
         <li>
+          <Link className="underline" href="/lp/zh">
+            项目介绍（中文）
+          </Link>
+          {" · "}
+          <Link className="underline" href="/lp/en">
+            English
+          </Link>
+          {" · "}
+          <Link className="underline" href="/lp/ja">
+            日本語
+          </Link>
+        </li>
+        <li>
           <Link className="underline" href="/architecture">
             防守架构
           </Link>
