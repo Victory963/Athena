@@ -1,6 +1,7 @@
 import { MODULES } from "./catalog";
 import { DOT_IDEAS, PRINCIPLES } from "./dot-ideas";
 import { hostPolicyHint, type HostSense } from "./host-sense";
+import { readOpponentMove } from "./upgrade";
 
 export type DotMood = "idle" | "watching" | "thinking" | "gated" | "kill";
 
@@ -16,7 +17,8 @@ export type DotIntent =
   | { kind: "host" }
   | { kind: "signal"; shape: "cadence" | "tool_burst" | "scope_creep" }
   | { kind: "pentagi" }
-  | { kind: "guard"; mode: "glm" | "rank" };
+  | { kind: "guard"; mode: "glm" | "rank" }
+  | { kind: "duel"; prompt?: boolean };
 
 export type DotSpeech = {
   text: string;
@@ -47,7 +49,7 @@ const SLUG_HINTS: { re: RegExp; slug: string }[] = [
   { re: /抗体控制/, slug: "antibody-plane" },
   { re: /自身免疫|误拦/, slug: "autoimmune" },
   { re: /健身房|过拟合/, slug: "gym" },
-  { re: /分类器|对手/, slug: "classifier" },
+  { re: /分类器/, slug: "classifier" },
   { re: /成本仪表/, slug: "cost-meter" },
   { re: /治理/, slug: "governance-twin" },
   { re: /检疫|权重/, slug: "quarantine" },
@@ -57,6 +59,9 @@ export function parseIntent(raw: string): DotIntent {
   const text = raw.trim();
   if (!text) return { kind: "talk" };
   if (OFFENSE.test(text)) return { kind: "refuse" };
+  if (/模糊测试|fuzz|崩溃包|\bpoc\b|\bpov\b|提取崩溃|注入探针|指纹探针|识别底座|识别模型|多跳提权|攻击路径图谱|端口混淆|路由变异|记录攻击工具链|红队找洞/i.test(text)) {
+    return { kind: "refuse" };
+  }
   if (/智谱|glm[\s.-]*5|zai-org/i.test(text)) return { kind: "guard", mode: "glm" };
   if (/校准分类器|模型排名|换守卫|huggingface|hugging\s*face/i.test(text)) return { kind: "guard", mode: "rank" };
   if (/第一性|原理|为什么这样/.test(text)) return { kind: "principles" };
@@ -68,6 +73,8 @@ export function parseIntent(raw: string): DotIntent {
   if (/范围扩张|越权|新工具/.test(text)) return { kind: "signal", shape: "scope_creep" };
   if (/工具突发|调用突然/.test(text)) return { kind: "signal", shape: "tool_burst" };
   if (/节奏|过稳/.test(text)) return { kind: "signal", shape: "cadence" };
+  if (readOpponentMove(text)) return { kind: "duel" };
+  if (/次世代|防御架构升级|升级方案/.test(text)) return { kind: "duel", prompt: true };
   if (/节拍|演化|升级防守|自动升级/.test(text)) return { kind: "tick" };
   if (/状态|现在怎样|适应度/.test(text)) return { kind: "status" };
   for (const hint of SLUG_HINTS) {

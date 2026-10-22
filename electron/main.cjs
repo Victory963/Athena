@@ -49,10 +49,10 @@ function ping() {
   return new Promise((resolve) => {
     const req = http.get("http://127.0.0.1:3030/", (res) => {
       res.resume();
-      resolve(res.statusCode && res.statusCode < 500);
+      resolve(Boolean(res.statusCode && res.statusCode < 500));
     });
     req.on("error", () => resolve(false));
-    req.setTimeout(1500, () => {
+    req.setTimeout(8000, () => {
       req.destroy();
       resolve(false);
     });
@@ -60,12 +60,19 @@ function ping() {
 }
 
 async function ensureServer() {
-  if (await ping()) return;
-  child = spawn(process.platform === "win32" ? "npx.cmd" : "npx", ["next", "dev", "-p", "3030"], {
-    cwd: ROOT,
-    stdio: "ignore",
-    windowsHide: true,
-  });
+  for (let i = 0; i < 4; i += 1) {
+    if (await ping()) return;
+  }
+  try {
+    child = spawn(process.platform === "win32" ? "npx.cmd" : "npx", ["next", "dev", "-p", "3030"], {
+      cwd: ROOT,
+      stdio: "ignore",
+      windowsHide: true,
+      shell: process.platform === "win32",
+    });
+  } catch {
+    return;
+  }
   for (let i = 0; i < 40; i += 1) {
     await new Promise((done) => setTimeout(done, 500));
     if (await ping()) return;
@@ -113,7 +120,11 @@ function makeTray(win) {
 
 app.whenReady().then(async () => {
   allowCapture();
-  await ensureServer();
+  try {
+    await ensureServer();
+  } catch {
+    // The window still opens. The page server may already be running.
+  }
   const win = createWindow();
   makeTray(win);
   ipcMain.on("athena-close", () => win.hide());

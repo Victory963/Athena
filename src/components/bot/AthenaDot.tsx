@@ -417,17 +417,23 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
     } else {
       setBots((current) => current.map((item) => (item.id === botId ? { ...item, choice: false } : item)));
     }
-    const response = await fetch("/api/bot", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ message: trimmed, consent: nextConsent }),
-    });
-    const body = (await response.json()) as { text: string; mood: Mood; state?: { killSwitch?: boolean } };
-    setMood(body.mood ?? "idle");
-    if (body.state?.killSwitch != null) setKillSwitch(body.state.killSwitch);
-    say(body.text, botId);
-    if (checkup && screenOn && screenNote !== "正常") say(`共享画面${screenNote}。`, botId);
-    if (checkup && cameraOn && cameraNote !== "正常") say(`摄像头${cameraNote}。`, botId);
+    try {
+      const response = await fetch("/api/bot", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: trimmed, consent: nextConsent }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const body = (await response.json()) as { text: string; mood: Mood; state?: { killSwitch?: boolean } };
+      setMood(body.mood ?? "idle");
+      if (body.state?.killSwitch != null) setKillSwitch(body.state.killSwitch);
+      say(body.text || "这一轮没有返回。直接说对方这一手。", botId);
+      if (checkup && screenOn && screenNote !== "正常") say(`共享画面${screenNote}。`, botId);
+      if (checkup && cameraOn && cameraNote !== "正常") say(`摄像头${cameraNote}。`, botId);
+    } catch {
+      setMood("idle");
+      say("这一轮没有返回。直接说对方这一手。", botId);
+    }
     setBusy(false);
   }
 

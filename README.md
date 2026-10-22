@@ -44,11 +44,13 @@ npx next dev -p 3030
 npm run bot
 ```
 
-打开 http://127.0.0.1:3030 。左边可以新建 Bot。可选：查这台电脑、共享画面、演化防守、先聊聊。查电脑只读进程数、监听端口、内存占用和 C 盘剩余空间。共享画面和摄像头只有点了才开，画面不外传。进攻请求会被拒绝。
+打开 http://127.0.0.1:3030 。左边可以新建 Bot。可选：查这台电脑、共享画面、演化防守、先聊聊。在输入框写对方这一手，Athena 按防守侧形状从十五个动作里选一个。查电脑只读进程数、监听端口、内存占用和 C 盘剩余空间。共享画面和摄像头只有点了才开，画面不外传。进攻请求会被拒绝。
 
-Desktop window: `npm run bot`. Open http://127.0.0.1:3030 . The left rail can create a bot. Choices: check this PC, share the screen, evolve a defense, or just talk. A PC check reads process count, listening ports, memory use, and free space on C:. Screen share and the camera start only after a click, and frames are not uploaded. Offensive requests are refused.
+2026-10-22 变更、理念、代码、ER 图和目录树： [中文](docs/UPDATE-2026-10-22.zh.md) · [English](docs/UPDATE-2026-10-22.en.md) · [日本語](docs/UPDATE-2026-10-22.ja.md)
 
-デスクトップは `npm run bot`。http://127.0.0.1:3030 を開きます。左で Bot を新規作成できます。この PC を調べる、画面共有、防御の進化、会話、から選べます。PC 検査はプロセス数、待受ポート、メモリ使用、C: の空きだけです。画面共有とカメラはクリック後だけ開き、フレームは外に送りません。攻撃の依頼は拒否します。
+Desktop window: `npm run bot`. Open http://127.0.0.1:3030 . The left rail can create a bot. Choices: check this PC, share the screen, evolve a defense, or just talk. Type the opponent's move in the composer and Athena picks one of the fifteen signed actions from the defender-side shape. A PC check reads process count, listening ports, memory use, and free space on C:. Screen share and the camera start only after a click, and frames are not uploaded. Offensive requests are refused.
+
+デスクトップは `npm run bot`。http://127.0.0.1:3030 を開きます。左で Bot を新規作成できます。この PC を調べる、画面共有、防御の進化、会話、から選べます。入力欄に相手の一手を書くと、防御側の形状から十五動作の一つを選びます。PC 検査はプロセス数、待受ポート、メモリ使用、C: の空きだけです。画面共有とカメラはクリック後だけ開き、フレームは外に送りません。攻撃の依頼は拒否します。
 
 详细架构、二十二个模块、十五个动作、代码地图和边界： [中文](docs/ARCHITECTURE.zh.md) · [English](docs/ARCHITECTURE.en.md) · [日本語](docs/ARCHITECTURE.ja.md)
 

@@ -55,7 +55,8 @@ Optional: if an OpenAI-compatible server is listening on `127.0.0.1:8080`, or `Z
 The left rail is the conversation list.
 
 - **New Bot** adds a thread. The title can be edited. The cross deletes it. Threads stay in local storage for this browser or desktop shell.
-- A new thread asks four things: **check this PC**, **share the screen**, **evolve a defense**, or **just talk**.
+- A new thread asks four things: **check this PC**, **share the screen**, **evolve a defense**, or **just talk**. There is no separate upgrade button.
+- Type the opponent's move in the composer, for example "the other side is probing", "the cadence is too regular", or "vendor health dropped". Athena picks one of the fifteen signed actions from the defender-side shape. A scope expansion stops at the human gate. The 2026-10-22 record, with the ER diagram and the tree, is [UPDATE-2026-10-22.en.md](UPDATE-2026-10-22.en.md).
 - **Check this PC**, or the phrase "check my PC": process count, listening ports, approximate memory use, and free space on C:. No clipboard, keystrokes, command-line arguments, LAN scan, or process kill.
 - **Screen share** and **camera** start only after a click. Frames stay on the machine and are read only for darkness or a strong red region. The label sits on the preview. "Normal" is not spammed into the thread. Closing the control, or the OS revoking permission, stops capture.
 - **Evolve**, or the word for a defensive tick: one pass through the modules, one signed action, or a stop at the human gate.

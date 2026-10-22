@@ -214,6 +214,43 @@ body:has(.athena-frame) {
   border-radius: 16px;
 }
 .athena-bubble.pending { color: #8a8478; }
+.athena-board {
+  align-self: flex-start;
+  width: min(520px, 100%);
+  margin: 0;
+  padding: 16px 18px 8px;
+  background: #fff;
+  border: 1px solid #e7e4de;
+  border-radius: 16px;
+}
+.athena-board h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.athena-board ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.athena-board li {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 10px 0;
+  border-top: 1px solid #f0eee9;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.athena-board b { font-weight: 600; }
+.athena-board em {
+  font-style: normal;
+  color: #5f5a53;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
 .athena-dock { position: relative; padding: 0 8vw 22px; }
 .athena-live { display: flex; gap: 8px; margin: 0 0 8px; }
 .athena-live figure { margin: 0; }

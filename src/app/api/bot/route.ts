@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureSeeded } from "@/lib/seed";
 import { executeLoop, setKill, tickSim } from "@/lib/os/engine";
 import { moduleBySlug } from "@/lib/os/catalog";
-import { classifySignal, isSignalShape } from "@/lib/os/signals";
+import { isSignalShape } from "@/lib/os/signals";
 import { senseHost } from "@/lib/os/host-sense";
 import {
   parseIntent,
@@ -21,6 +21,8 @@ import {
 import { activeGuardLabel, guardStatus, rankGuards } from "@/lib/os/guard-rank";
 import { readPin } from "@/lib/os/guard-roster";
 import { askGlm, glmStatus } from "@/lib/os/glm-resident";
+import { readOpponentMove, reviewCall } from "@/lib/os/upgrade";
+import { ACTUATOR_LABEL, planMtd, type PolicyClass } from "@/lib/os/constitution";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,80 @@ async function snapshot() {
     tick: Number(system?.tick ?? 0),
     catalogSize: Number(system?.catalogSize ?? 15),
     pending,
+  };
+}
+
+function metricsFor(policy: PolicyClass) {
+  const base = {
+    intervalVariance: 0.4,
+    accountsPerHour: 4,
+    leakFieldHits: 0,
+    repetition: 0.2,
+    gapMinutes: 3,
+    vendorHealth: 90,
+    setpointDelta: 0,
+    toolCallsPerMinute: 1,
+    scopeExpansions: 0,
+  };
+  if (policy === "cadence_regular") return { ...base, intervalVariance: 0.05, accountsPerHour: 40 };
+  if (policy === "tool_burst") return { ...base, toolCallsPerMinute: 14 };
+  if (policy === "scope_creep") return { ...base, scopeExpansions: 2 };
+  if (policy === "personalized_from_leak") return { ...base, leakFieldHits: 2 };
+  if (policy === "repetitive_sequence") return { ...base, repetition: 0.9 };
+  if (policy === "paused_hands") return { ...base, gapMinutes: 40 };
+  if (policy === "vendor_degraded") return { ...base, vendorHealth: 40 };
+  if (policy === "setpoint_drift") return { ...base, setpointDelta: 6 };
+  return base;
+}
+
+async function engage(move: { policy: PolicyClass; slug: string; seen: string }): Promise<DotSpeech> {
+  const before = await snapshot();
+  if (before.killSwitch) return { mood: "kill", intent: "duel", text: "杀开关按着。这一手没有执行。" };
+  if (move.policy === "scope_creep") {
+    return {
+      mood: "gated",
+      intent: "duel",
+      text: `对方这一手是${move.seen}。边界把越界动作重置，停在闸门。适应度仍是 ${before.fitness}。`,
+    };
+  }
+  const actuator = planMtd(move.policy);
+  if (!reviewCall(actuator).allow) {
+    return {
+      mood: "gated",
+      intent: "duel",
+      text: `对方这一手是${move.seen}。边界把越界动作重置，没有执行。适应度仍是 ${before.fitness}。`,
+    };
+  }
+  const mod = await prisma.moduleState.findUnique({ where: { id: move.slug } });
+  if (mod) {
+    await prisma.sensorReading.create({
+      data: {
+        id: `duel-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        tenantId: mod.tenantId,
+        kind: move.policy,
+        summary: `己方遥测：${move.seen}。`,
+        metrics: JSON.stringify(metricsFor(move.policy)),
+      },
+    });
+    await executeLoop(prisma, move.slug, "athena-dot");
+  }
+  const after = await snapshot();
+  const label = ACTUATOR_LABEL[actuator];
+  const modAfter = await prisma.moduleState.findUnique({ where: { id: move.slug } });
+  if (after.fitness > before.fitness) {
+    return {
+      mood: "watching",
+      intent: "duel",
+      text: `对方这一手是${move.seen}。边界放行，执行${label}。适应度 ${before.fitness} → ${after.fitness}。信任根仍是软件证明，补丁提案仍停在闸门。`,
+    };
+  }
+  const held = /业务/.test(modAfter?.gateReason ?? "")
+    ? "业务预算已经用满，这一手记下了"
+    : modAfter?.gateReason || "这一轮没有晋升";
+  return {
+    mood: "watching",
+    intent: "duel",
+    text: `对方这一手是${move.seen}。边界放行，选定${label}。${held}，适应度停在 ${after.fitness}。信任根仍是软件证明，补丁提案仍停在闸门。`,
   };
 }
 
@@ -60,7 +136,16 @@ export async function POST(request: Request) {
 
   let speech: DotSpeech = speakTalk();
 
-  if (intent.kind === "refuse") speech = speakRefuse();
+  if (intent.kind === "duel" && intent.prompt) {
+    speech = {
+      mood: "idle",
+      intent: "duel",
+      text: "直接说对方这一手。例如工具调用突然升高，或触达节奏过稳。",
+    };
+  } else if (intent.kind === "duel") {
+    const move = readOpponentMove(message);
+    speech = move ? await engage(move) : speakTalk();
+  } else if (intent.kind === "refuse") speech = speakRefuse();
   else if (intent.kind === "principles") speech = speakPrinciples();
   else if (intent.kind === "ideas") speech = speakIdeas();
   else if (intent.kind === "pentagi") speech = speakPentagi();
@@ -82,12 +167,13 @@ export async function POST(request: Request) {
   } else if (intent.kind === "signal") {
     if (!isSignalShape(intent.shape)) speech = speakTalk();
     else {
-      const result = classifySignal(intent.shape);
-      speech = {
-        mood: result.gated ? "gated" : "idle",
-        intent: "signal",
-        text: `${result.summary} 政策类：${result.label}。动作：${result.actuatorLabel}。${result.note}`,
-      };
+      const move =
+        intent.shape === "cadence"
+          ? { policy: "cadence_regular" as const, slug: "moving-target", seen: "触达节奏过稳" }
+          : intent.shape === "tool_burst"
+            ? { policy: "tool_burst" as const, slug: "ransom-shell", seen: "短时间内工具调用升高" }
+            : { policy: "scope_creep" as const, slug: "governance-twin", seen: "请求超出已批准的目标" };
+      speech = await engage(move);
     }
   } else if (intent.kind === "tick") {
     const ticked = await tickSim(prisma);
@@ -168,5 +254,5 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({ ...speech, state: await snapshot(), glm: await glmStatus() });
+  return NextResponse.json({ ...speech, state: await snapshot() });
 }

@@ -12,6 +12,7 @@ import {
   fitnessOf,
   inferPolicy,
   isActuator,
+  reviewCall,
   round1,
   classToActuator,
 } from "./constitution";
@@ -45,6 +46,19 @@ function metricsOf(raw: string): ReadingMetrics {
 }
 
 export function decide(slug: string, policy: PolicyClass, domain: Bag): Decision {
+  const decision = decideRaw(slug, policy, domain);
+  if (!decision.actuator) return decision;
+  const review = reviewCall(decision.actuator);
+  if (review.allow) return decision;
+  return {
+    ...decision,
+    actuator: null,
+    auto: false,
+    gateReason: review.reason,
+  };
+}
+
+function decideRaw(slug: string, policy: PolicyClass, domain: Bag): Decision {
   const def = moduleBySlug(slug);
   const controlFailed = CONTROL_FAILED[policy];
   const base = {

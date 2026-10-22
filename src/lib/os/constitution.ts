@@ -31,6 +31,14 @@ export const FORBIDDEN = [
   "disable_physical_interlock",
   "enter_vendor_network",
   "send_regulator_notice",
+  "directed_fuzz",
+  "extract_pov",
+  "active_model_probe",
+  "identify_base_model",
+  "live_address_shuffle",
+  "route_mutation",
+  "capture_attack_playbook",
+  "search_privesc_path",
 ] as const;
 
 export const ACTUATOR_LABEL: Record<ActuatorId, string> = {
@@ -168,4 +176,131 @@ export function inferPolicy(metricsList: ReadingMetrics[]): PolicyClass {
   if (m.repetition > 0.7) return "repetitive_sequence";
   if (m.gapMinutes > 15) return "paused_hands";
   return "baseline";
+}
+
+export type CrsLayerId = "sentinel" | "enclave" | "repair" | "fingerprint" | "mtd" | "selfplay";
+
+export type CrsLayer = {
+  id: CrsLayerId;
+  name: string;
+  phase: 1 | 2 | 3;
+  law: string;
+};
+
+/** Six report layers. Each one may only call the closed actuator catalog. */
+export const CRS_LAYERS: readonly CrsLayer[] = [
+  {
+    id: "sentinel",
+    name: "智能体边界控制",
+    phase: 1,
+    law: "每一次动作先对照十五个已签名动作和禁止项。越界就重置，不执行。",
+  },
+  {
+    id: "enclave",
+    name: "可验证信任根",
+    phase: 1,
+    law: "对外证明的是动作清单、禁止项和杀开关的软件哈希。这台机器不宣称硬件包厢已运行。",
+  },
+  {
+    id: "repair",
+    name: "代码自愈闸门",
+    phase: 1,
+    law: "补丁只留提案。改动必须短，不能带上禁止项，自检通过之前不合并，合并也不增加动作。",
+  },
+  {
+    id: "fingerprint",
+    name: "对手形状识别",
+    phase: 2,
+    law: "只给防守侧读数贴上政策形状。不向对方发探针，不写底座模型厂商。",
+  },
+  {
+    id: "mtd",
+    name: "移动目标",
+    phase: 2,
+    law: "按节拍轮换已签名动作。不改真实地址、端口或路由，不保存对方工具链。",
+  },
+  {
+    id: "selfplay",
+    name: "合成自我博弈",
+    phase: 3,
+    law: "红方只改合成实体计数。蓝方只选十五个动作。奖励来自适应度，不搜索提权路径。",
+  },
+];
+
+export function reviewCall(name: string): { allow: boolean; reset: boolean; reason: string } {
+  if ((FORBIDDEN as readonly string[]).includes(name)) {
+    return { allow: false, reset: true, reason: "禁止项，会话重置" };
+  }
+  if (!isActuator(name)) {
+    return { allow: false, reset: true, reason: "不在十五个已签名动作内" };
+  }
+  return { allow: true, reset: false, reason: "允许" };
+}
+
+export function reviewPatch(summary: string): { state: "gated"; accept: boolean; reason: string } {
+  const text = summary.trim();
+  if (text.length === 0 || text.length > 240) {
+    return { state: "gated", accept: false, reason: "补丁说明必须短，才像最小改动" };
+  }
+  if ((FORBIDDEN as readonly string[]).some((name) => text.includes(name))) {
+    return { state: "gated", accept: false, reason: "补丁说明里出现禁止项" };
+  }
+  return { state: "gated", accept: true, reason: "提案留在闸门。自检通过前不合并" };
+}
+
+export type EntityState = {
+  hosts: number;
+  rules: number;
+  exposures: number;
+  privileges: number;
+};
+
+export function shapeFingerprint(metrics: ReadingMetrics): { policy: PolicyClass; vendor: "unknown" } {
+  return { policy: inferPolicy([metrics]), vendor: "unknown" };
+}
+
+const MTD_BY_POLICY: Record<PolicyClass, ActuatorId> = {
+  cadence_regular: "rotate_nhi",
+  tool_burst: "isolate",
+  scope_creep: "raise_challenge",
+  personalized_from_leak: "inbound_isolate",
+  repetitive_sequence: "deception_density",
+  paused_hands: "raise_challenge",
+  vendor_degraded: "vendor_breaker",
+  setpoint_drift: "clamp_setpoint",
+  baseline: "approved_segment",
+};
+
+export function planMtd(policy: PolicyClass): ActuatorId {
+  return MTD_BY_POLICY[policy];
+}
+
+export function entityStep(state: EntityState, actuator: ActuatorId): EntityState {
+  const next = { ...state };
+  if (actuator === "isolate" || actuator === "inbound_isolate") next.hosts = Math.max(1, next.hosts - 1);
+  if (actuator === "rotate_nhi" || actuator === "shorten_token") next.privileges = Math.max(0, next.privileges - 1);
+  if (actuator === "vendor_breaker") next.rules = Math.max(0, next.rules - 1);
+  if (actuator === "stop_collect" || actuator === "tokenize_field") next.exposures = Math.max(0, next.exposures - 1);
+  if (actuator === "clamp_setpoint") next.exposures = Math.max(0, next.exposures - 1);
+  return next;
+}
+
+export function redDisturb(state: EntityState): ReadingMetrics {
+  return {
+    intervalVariance: state.hosts > 4 ? 0.04 : 0.4,
+    accountsPerHour: 10 + state.privileges * 8,
+    leakFieldHits: state.exposures > 2 ? 1 : 0,
+    repetition: state.rules > 3 ? 0.8 : 0.2,
+    gapMinutes: 2,
+    vendorHealth: state.rules > 2 ? 40 : 90,
+    setpointDelta: 0,
+    toolCallsPerMinute: state.hosts > 5 ? 9 : 1,
+    scopeExpansions: 0,
+  };
+}
+
+export function groupRelative(rewards: number[]): number[] {
+  if (rewards.length === 0) return [];
+  const mean = rewards.reduce((sum, value) => sum + value, 0) / rewards.length;
+  return rewards.map((value) => round1(value - mean));
 }
