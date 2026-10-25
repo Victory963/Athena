@@ -48,6 +48,8 @@ npm run bot
 
 2026-10-25 本机断路器、GLM-5.3、UI、功能、ER 图和目录树： [中文](docs/UPDATE-2026-10-25.zh.md) · [English](docs/UPDATE-2026-10-25.en.md) · [日本語](docs/UPDATE-2026-10-25.ja.md)
 
+模型栈分支上的五席、车道和代码： [中文](docs/MODEL-STACK.zh.md) · [English](docs/MODEL-STACK.en.md) · [日本語](docs/MODEL-STACK.ja.md)
+
 2026-10-22 六层宪法与对话出招： [中文](docs/UPDATE-2026-10-22.zh.md) · [English](docs/UPDATE-2026-10-22.en.md) · [日本語](docs/UPDATE-2026-10-22.ja.md)
 
 Desktop window: `npm run bot`. Open http://127.0.0.1:3030 . The left rail can create a bot. Choices: check this PC, share the screen, evolve a defense, or just talk. The line under the title is the local breaker. Type the opponent's move and Athena picks one of the fifteen signed actions. Failed logons, new tasks, new startup items, and new local credentials can cut on this computer. Chat uses GLM-5.3 when `ZAI_API_KEY` is set. A PC check reads process count, listening ports, memory use, and free space on C:. Screen share and the camera start only after a click. Offensive requests are refused. Do not commit the key.

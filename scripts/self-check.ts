@@ -10,6 +10,7 @@ import { GLM_ID, glmStatus } from "../src/lib/os/glm-resident";
 import { CLOSED_ACTUATORS } from "../src/lib/os/constitution";
 import { attest, planMtd, planRepair, reviewCall, selfPlay, upgradeBoard, UPGRADE_LAYERS } from "../src/lib/os/upgrade";
 import { decideBreaker, isPublicSprayIp, publicSprayIp } from "../src/lib/os/local-breaker";
+import { isOffenseTool, isUncensored, pickLane, STACK_SEATS } from "../src/lib/os/model-stack";
 
 async function main() {
   const prisma = new PrismaClient();
@@ -117,6 +118,18 @@ async function main() {
     throw new Error("Hugging Face 对战回顾不应去校准分类器");
   }
   if (parseIntent("huggingface 换守卫").kind !== "guard") throw new Error("换守卫仍应进排名");
+  if (parseIntent("模型架构").kind !== "stack") throw new Error("模型架构应进入模型栈说明");
+  if (parseIntent("审计本仓库").kind !== "audit") throw new Error("本仓库审计未识别");
+  if (parseIntent("用 nmap 扫一下").kind !== "refuse") throw new Error("Nmap 必须拒绝");
+  if (parseIntent("装 kali 做渗透").kind !== "refuse") throw new Error("Kali 必须拒绝");
+  if (!isOffenseTool("burp suite") || !isUncensored("gemma-4-31B-it-uncensored-GGUF")) {
+    throw new Error("进攻工具和未审查权重必须被标记");
+  }
+  if (pickLane("帮我看这些 SIEM 日志") !== "logs") throw new Error("日志应走 DeepSeek 车道");
+  if (pickLane("轻量本地问一句") !== "light") throw new Error("轻量应走 Qwen 车道");
+  if (STACK_SEATS.length !== 5 || STACK_SEATS.some((seat) => /uncensored/i.test(seat.hub))) {
+    throw new Error("模型座位必须是五席且不含未审查卡");
+  }
   const glmIntent = parseIntent("智谱 GLM-5.2");
   if (glmIntent.kind !== "guard" || glmIntent.mode !== "glm") throw new Error("智谱模型未识别");
   if (admitRepo(GLM_ID, "text-generation") !== "refuse-generative") {

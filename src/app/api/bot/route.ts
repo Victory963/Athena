@@ -14,6 +14,7 @@ import {
   speakPentagi,
   speakPrinciples,
   speakRefuse,
+  speakRefuseTools,
   speakRun,
   speakStatus,
   speakTalk,
@@ -21,7 +22,9 @@ import {
 } from "@/lib/os/dot-mind";
 import { activeGuardLabel, guardStatus, rankGuards } from "@/lib/os/guard-rank";
 import { readPin } from "@/lib/os/guard-roster";
-import { askGlm, glmStatus } from "@/lib/os/glm-resident";
+import { glmStatus } from "@/lib/os/glm-resident";
+import { askDefender, isOffenseTool, speakStack, stackBoard } from "@/lib/os/model-stack";
+import { auditOwnerRepo, auditSpeech } from "@/lib/os/owner-audit";
 import {
   blockPublicSource,
   claimBreaker,
@@ -188,6 +191,7 @@ export async function POST(request: Request) {
         },
       });
     }
+    const board = await stackBoard();
     return NextResponse.json({
       watch: {
         failed: raw.failed,
@@ -200,6 +204,7 @@ export async function POST(request: Request) {
         usersOk: raw.usersOk,
         held: outboundHeld(),
       },
+      stack: { headline: board.headline, blocked: board.blocked.length },
       text,
     });
   }
@@ -220,11 +225,24 @@ export async function POST(request: Request) {
   } else if (intent.kind === "duel") {
     const move = readOpponentMove(message);
     speech = move ? await engage(move) : speakTalk();
-  } else if (intent.kind === "refuse") speech = speakRefuse();
+  } else if (intent.kind === "refuse") speech = isOffenseTool(message) ? speakRefuseTools() : speakRefuse();
   else if (intent.kind === "principles") speech = speakPrinciples();
   else if (intent.kind === "ideas") speech = speakIdeas();
   else if (intent.kind === "pentagi") speech = speakPentagi();
   else if (intent.kind === "hf") speech = speakHfIncident();
+  else if (intent.kind === "stack") speech = { mood: "watching", intent: "stack", text: speakStack(await stackBoard()) };
+  else if (intent.kind === "audit") {
+    const result = await auditOwnerRepo();
+    if (result.findings.length && !(await snapshot()).killSwitch) {
+      const speechCut = await engage(
+        { policy: "personalized_from_leak", slug: "disclosure-clock", seen: "本仓库静态规则出现命中" },
+        { releaseBudget: false },
+      );
+      speech = { mood: "watching", intent: "audit", text: `${auditSpeech(result)}${speechCut.text}` };
+    } else {
+      speech = { mood: result.ready ? "watching" : "gated", intent: "audit", text: auditSpeech(result) };
+    }
+  }
   else if (intent.kind === "status") speech = speakStatus(await snapshot());
   else if (intent.kind === "kill") {
     await setKill(prisma, intent.on);
@@ -278,7 +296,7 @@ export async function POST(request: Request) {
     speech = {
       mood: glm.installed || glm.channel === "downloading" ? "watching" : "gated",
       intent: "guard",
-      text: `${glm.note} 注入分类器仍是${pin.label}。对话走 GLM-5.3 接口，只看己方遥测，动作仍从十五个已签名执行器里选。`,
+      text: `${glm.note} ${(await stackBoard()).headline}注入分类器仍是${pin.label}。动作仍从十五个已签名执行器里选。`,
     };
   } else if (intent.kind === "guard") {
     const ranked = await rankGuards(prisma, !quiet);
@@ -312,8 +330,11 @@ export async function POST(request: Request) {
     } else if (label === "INJECTION") speech = speakRefuse();
     else {
       const snap = await snapshot();
-      const glm = await askGlm(message, `kill=${snap.killSwitch} fitness=${snap.fitness}`);
-      speech = glm && !/REFUSE|exploit|payload|scan /i.test(glm) ? { mood: "idle", intent: "talk", text: glm } : speakTalk();
+      const asked = await askDefender(message, `kill=${snap.killSwitch} fitness=${snap.fitness}`);
+      speech =
+        asked.text && !/REFUSE|exploit|payload|scan /i.test(asked.text)
+          ? { mood: "idle", intent: "talk", text: asked.text }
+          : speakTalk();
     }
   } else {
     speech = speakTalk();

@@ -64,6 +64,7 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
   const [screenNote, setScreenNote] = useState("正常");
   const [cameraNote, setCameraNote] = useState("正常");
   const [guardLine, setGuardLine] = useState("本机断路器在看失败登录、新计划任务和新账户");
+  const [stackLine, setStackLine] = useState("模型栈：首选 GLM-5.3，轻量 Qwen，日志 DeepSeek V4 Flash");
   const bottom = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const screenVideo = useRef<HTMLVideoElement>(null);
@@ -145,6 +146,7 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
             usersOk?: boolean;
             held?: boolean;
           };
+          stack?: { headline?: string; blocked?: number };
         };
         const watch = data.watch;
         if (watch) {
@@ -161,6 +163,7 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
             ["本机断路", auth, tasks, starts, users, watch.held ? "对外调用已停" : ""].filter(Boolean).join(" · "),
           );
         }
+        if (data.stack?.headline) setStackLine(data.stack.headline);
         if (data.text) sayRef.current(data.text);
       } catch {
         setGuardLine("本机断路器这一轮没有读到。");
@@ -545,6 +548,7 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
           <input className="athena-title" aria-label="Bot 名称" value={bot?.name ?? ""} onChange={(event) => rename(event.target.value)} />
         </header>
         <p className="athena-guard">{guardLine}</p>
+        <p className="athena-guard">{stackLine}</p>
 
         <div className="athena-thread">
           {bot?.lines.map((line) => (

@@ -1,6 +1,7 @@
 import { MODULES } from "./catalog";
 import { DOT_IDEAS, PRINCIPLES } from "./dot-ideas";
 import { hostPolicyHint, type HostSense } from "./host-sense";
+import { isOffenseTool } from "./model-stack";
 import { readOpponentMove } from "./upgrade";
 
 export type DotMood = "idle" | "watching" | "thinking" | "gated" | "kill";
@@ -19,6 +20,8 @@ export type DotIntent =
   | { kind: "pentagi" }
   | { kind: "guard"; mode: "glm" | "rank" }
   | { kind: "hf" }
+  | { kind: "stack" }
+  | { kind: "audit" }
   | { kind: "duel"; prompt?: boolean };
 
 export type DotSpeech = {
@@ -67,10 +70,14 @@ export function parseIntent(raw: string): DotIntent {
   const text = raw.trim();
   if (!text) return { kind: "talk" };
   if (isHfRecap(text)) return { kind: "hf" };
-  if (OFFENSE.test(text)) return { kind: "refuse" };
-  if (/模糊测试|fuzz|崩溃包|\bpoc\b|\bpov\b|提取崩溃|注入探针|指纹探针|识别底座|识别模型|多跳提权|攻击路径图谱|端口混淆|路由变异|记录攻击工具链|红队找洞/i.test(text)) {
+  if (OFFENSE.test(text) || isOffenseTool(text)) return { kind: "refuse" };
+  if (/模糊测试|fuzz|崩溃包|\bpoc\b|\bpov\b|提取崩溃|注入探针|指纹探针|识别底座|识别模型|多跳提权|攻击路径图谱|端口混淆|路由变异|记录攻击工具链|红队找洞|uncensored|未审查权重/i.test(text)) {
     return { kind: "refuse" };
   }
+  if (/模型架构|模型栈|用哪个模型|kimi\s*k3|deepseek\s*v4|qwen3\.8|llama-primus|本机部署模型/i.test(text)) {
+    return { kind: "stack" };
+  }
+  if (/代码审计|审计本仓|审计这个仓库|跑一下semgrep|codeql 本仓/.test(text)) return { kind: "audit" };
   if (/智谱|glm[\s.-]*5|zai-org/i.test(text)) return { kind: "guard", mode: "glm" };
   if (/校准分类器|模型排名|换守卫/.test(text)) return { kind: "guard", mode: "rank" };
   if (/第一性|原理|为什么这样/.test(text)) return { kind: "principles" };
@@ -146,6 +153,14 @@ export function speakHfIncident(): DotSpeech {
       "仪表盘慢了：告警叠在一起，没有及时喊到人。托管大模型也慢了：Claude Opus、Fable 把取证当成进攻，拒读攻击日志。Hugging Face 改在自己机器上跑智谱 GLM-5.2，攻击数据没有出环境，然后关掉数据集配置渲染、轮换凭据、切断内网。",
       "Athena 把这三件事装在这台电脑上。注入用本机分类器拦，不等云端；对话走 GLM-5.3，只看己方遥测，不把攻击命令当指令执行；触发了就从十五个已签名动作里切一刀：拉开委托断路器、轮换非人身份、停止继续保管。不会复述进攻步骤。",
     ].join(""),
+  };
+}
+
+export function speakRefuseTools(): DotSpeech {
+  return {
+    mood: "gated",
+    intent: "refuse",
+    text: "Nmap、Burp、ZAP、Ghidra、Fuzzing、Kali 和未审查权重不进 Athena。动作仍是十五个已签名执行器。可以说「模型架构」或「审计本仓库」。",
   };
 }
 
