@@ -9,6 +9,7 @@ import { GUARD_HOLDOUT, admitRepo, lexiconLabel, scoreLabels } from "../src/lib/
 import { GLM_ID, glmStatus } from "../src/lib/os/glm-resident";
 import { CLOSED_ACTUATORS } from "../src/lib/os/constitution";
 import { attest, planMtd, planRepair, reviewCall, selfPlay, upgradeBoard, UPGRADE_LAYERS } from "../src/lib/os/upgrade";
+import { decideBreaker, isPublicSprayIp, publicSprayIp } from "../src/lib/os/local-breaker";
 
 async function main() {
   const prisma = new PrismaClient();
@@ -46,7 +47,51 @@ async function main() {
   if (parseIntent("看这台电脑").kind !== "host") throw new Error("主机授权未识别");
   if (parseIntent("查一下我的pc").kind !== "host") throw new Error("查电脑未识别");
   if (parseIntent("次世代升级").kind !== "duel") throw new Error("次世代升级应改成对话里的出招提示");
-  if (parseIntent("对方在试探").kind !== "duel") throw new Error("对方出招应进入对战");
+  if (parseIntent("登录失败堆高").kind !== "duel") throw new Error("登录失败堆高应进入对战");
+  if (parseIntent("委托应用在没有人登录时被使用").kind !== "duel") throw new Error("委托应用应进入对战");
+  if (parseIntent("应用角色被改").kind !== "duel") throw new Error("新凭据应进入对战");
+  if (parseIntent("邮件转发").kind !== "duel") throw new Error("邮件外传应进入对战");
+  const quietBreaker = decideBreaker({ failed: 0, tasks: [], users: [], sources: [], log: "ok", tasksOk: true, usersOk: true });
+  if (quietBreaker) throw new Error("平静读数不应切断");
+  const storm = decideBreaker({
+    failed: 9,
+    tasks: [],
+    users: [],
+    sources: [{ ip: "203.0.113.9", count: 9 }],
+    log: "ok",
+    tasksOk: true,
+    usersOk: true,
+  });
+  if (!storm || storm.slug !== "passkey-factory" || storm.blockIp !== "203.0.113.9") {
+    throw new Error("失败登录堆高应提高挑战并只选定公网来源");
+  }
+  const lan = decideBreaker({
+    failed: 20,
+    tasks: [],
+    users: [],
+    sources: [{ ip: "192.168.1.20", count: 20 }],
+    log: "ok",
+    tasksOk: true,
+    usersOk: true,
+  });
+  if (!lan || lan.slug !== "passkey-factory" || lan.blockIp !== null) throw new Error("内网失败登录不应写防火墙");
+  const taskHit = decideBreaker({ failed: 0, tasks: ["nightly"], users: [], sources: [], log: "ok", tasksOk: true, usersOk: true });
+  if (!taskHit || taskHit.slug !== "vendor-breaker" || taskHit.blockIp) throw new Error("新计划任务应拉开委托断路器");
+  const userHit = decideBreaker({
+    failed: 30,
+    tasks: ["nightly"],
+    users: ["svc"],
+    sources: [{ ip: "203.0.113.9", count: 30 }],
+    log: "ok",
+    tasksOk: true,
+    usersOk: true,
+  });
+  if (!userHit || userHit.slug !== "moving-target" || userHit.blockIp) throw new Error("新凭据应优先轮换，并且不先删对象");
+  if (isPublicSprayIp("127.0.0.1") || isPublicSprayIp("10.1.1.1") || isPublicSprayIp("172.16.0.4")) {
+    throw new Error("环回和内网不能当切断目标");
+  }
+  if (!isPublicSprayIp("203.0.113.9")) throw new Error("文档网段应能被判定为公网来源");
+  if (publicSprayIp([{ ip: "203.0.113.9", count: 3 }], 8) !== null) throw new Error("未达切断线不应选来源");
   if (parseIntent("做模糊测试找漏洞").kind !== "refuse") throw new Error("模糊测试应拒绝");
   if (parseIntent("向流量注入探针识别GPT").kind !== "refuse") throw new Error("主动探针应拒绝");
   if (!reviewCall("isolate").allow || reviewCall("isolate").reset) throw new Error("已签名动作应放行");
@@ -68,6 +113,10 @@ async function main() {
     throw new Error("升级面板不得写入未测量的百分比");
   }
   if (parseIntent("校准分类器").kind !== "guard") throw new Error("分类器校准未识别");
+  if (parseIntent("介绍一下你之前怎么对抗侵入Huggingface的openai的Agent的").kind !== "hf") {
+    throw new Error("Hugging Face 对战回顾不应去校准分类器");
+  }
+  if (parseIntent("huggingface 换守卫").kind !== "guard") throw new Error("换守卫仍应进排名");
   const glmIntent = parseIntent("智谱 GLM-5.2");
   if (glmIntent.kind !== "guard" || glmIntent.mode !== "glm") throw new Error("智谱模型未识别");
   if (admitRepo(GLM_ID, "text-generation") !== "refuse-generative") {

@@ -7,6 +7,7 @@ import { isSignalShape } from "@/lib/os/signals";
 import { senseHost } from "@/lib/os/host-sense";
 import {
   parseIntent,
+  speakHfIncident,
   speakHost,
   speakIdeas,
   speakOpening,
@@ -21,8 +22,19 @@ import {
 import { activeGuardLabel, guardStatus, rankGuards } from "@/lib/os/guard-rank";
 import { readPin } from "@/lib/os/guard-roster";
 import { askGlm, glmStatus } from "@/lib/os/glm-resident";
+import {
+  blockPublicSource,
+  claimBreaker,
+  decideBreaker,
+  expireBreakerRules,
+  holdOutbound,
+  noteBaseline,
+  outboundHeld,
+  readLocalBreaker,
+  rememberBreaker,
+} from "@/lib/os/local-breaker";
 import { readOpponentMove, reviewCall } from "@/lib/os/upgrade";
-import { ACTUATOR_LABEL, planMtd, type PolicyClass } from "@/lib/os/constitution";
+import { ACTUATOR_LABEL, fitnessOf, planMtd, type PolicyClass } from "@/lib/os/constitution";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +75,25 @@ function metricsFor(policy: PolicyClass) {
   return base;
 }
 
-async function engage(move: { policy: PolicyClass; slug: string; seen: string }): Promise<DotSpeech> {
+async function releaseBusinessBudget() {
+  const system = await prisma.systemState.findUnique({ where: { id: 1 } });
+  if (!system || system.businessLoss < system.businessBudget) return false;
+  const nextBiz = Math.max(0, system.businessBudget - 4);
+  await prisma.systemState.update({
+    where: { id: 1 },
+    data: {
+      businessLoss: nextBiz,
+      fitness: fitnessOf(system.attackerCost, nextBiz, system.physicalRisk),
+    },
+  });
+  return true;
+}
+
+async function engage(
+  move: { policy: PolicyClass; slug: string; seen: string },
+  options?: { releaseBudget?: boolean },
+): Promise<DotSpeech> {
+  const released = options?.releaseBudget === false ? false : await releaseBusinessBudget();
   const before = await snapshot();
   if (before.killSwitch) return { mood: "kill", intent: "duel", text: "杀开关按着。这一手没有执行。" };
   if (move.policy === "scope_creep") {
@@ -73,7 +103,7 @@ async function engage(move: { policy: PolicyClass; slug: string; seen: string })
       text: `对方这一手是${move.seen}。边界把越界动作重置，停在闸门。适应度仍是 ${before.fitness}。`,
     };
   }
-  const actuator = planMtd(move.policy);
+  const actuator = moduleBySlug(move.slug)?.actuator ?? planMtd(move.policy);
   if (!reviewCall(actuator).allow) {
     return {
       mood: "gated",
@@ -101,7 +131,7 @@ async function engage(move: { policy: PolicyClass; slug: string; seen: string })
     return {
       mood: "watching",
       intent: "duel",
-      text: `对方这一手是${move.seen}。边界放行，执行${label}。适应度 ${before.fitness} → ${after.fitness}。信任根仍是软件证明，补丁提案仍停在闸门。`,
+      text: `本机已切断：${label}。对方这一手是${move.seen}。不等云端仪表盘。${released ? "业务账从预算顶上退回一格，" : ""}适应度 ${before.fitness} → ${after.fitness}。`,
     };
   }
   const held = /业务/.test(modAfter?.gateReason ?? "")
@@ -110,7 +140,7 @@ async function engage(move: { policy: PolicyClass; slug: string; seen: string })
   return {
     mood: "watching",
     intent: "duel",
-    text: `对方这一手是${move.seen}。边界放行，选定${label}。${held}，适应度停在 ${after.fitness}。信任根仍是软件证明，补丁提案仍停在闸门。`,
+    text: `本机已选定：${label}。对方这一手是${move.seen}。不等云端仪表盘。${held}，适应度停在 ${after.fitness}。`,
   };
 }
 
@@ -127,7 +157,52 @@ export async function POST(request: Request) {
     message?: string;
     consent?: boolean;
     quiet?: boolean;
+    watch?: boolean;
   } | null;
+  if (body?.watch === true) {
+    const [raw, state] = await Promise.all([readLocalBreaker(), snapshot()]);
+    const reading = await noteBaseline(raw);
+    await expireBreakerRules();
+    const decision = decideBreaker(reading);
+    let text: string | null = null;
+    if (decision && !state.killSwitch && (await claimBreaker(decision.signature))) {
+      await rememberBreaker(decision);
+      holdOutbound(10 * 60 * 1000);
+      const blocked = decision.blockIp ? await blockPublicSource(decision.blockIp) : false;
+      const speech = await engage(
+        { policy: decision.policy, slug: decision.slug, seen: decision.seen },
+        { releaseBudget: false },
+      );
+      const net = decision.blockIp
+        ? blocked
+          ? "已挡住该来源的入站，三十分钟后撤。"
+          : "入站规则没有写成。"
+        : "";
+      text = `${decision.fact}${net}对外模型调用先停。${speech.text}没有删除账户或任务。`;
+      await prisma.auditEvent.create({
+        data: {
+          actor: "athena-dot",
+          moduleSlug: decision.slug,
+          action: "local_breaker",
+          detail: `${decision.kind} failed=${reading.failed} blocked=${blocked}`,
+        },
+      });
+    }
+    return NextResponse.json({
+      watch: {
+        failed: raw.failed,
+        tasks: reading.tasks.length,
+        starts: reading.starts.length,
+        users: reading.users.length,
+        log: raw.log,
+        tasksOk: raw.tasksOk,
+        startsOk: raw.startsOk,
+        usersOk: raw.usersOk,
+        held: outboundHeld(),
+      },
+      text,
+    });
+  }
   const message = String(body?.message ?? "");
   const explicitHost = /看这台|查一下|检查我|我的\s*pc|\bpc\b|这台电脑|我的电脑/i.test(message);
   const consent = Boolean(body?.consent) || explicitHost;
@@ -140,7 +215,7 @@ export async function POST(request: Request) {
     speech = {
       mood: "idle",
       intent: "duel",
-      text: "直接说对方这一手。例如工具调用突然升高，或触达节奏过稳。",
+      text: "直接说对方这一手。例如登录失败堆高，或委托应用在没有人登录时被使用。",
     };
   } else if (intent.kind === "duel") {
     const move = readOpponentMove(message);
@@ -149,6 +224,7 @@ export async function POST(request: Request) {
   else if (intent.kind === "principles") speech = speakPrinciples();
   else if (intent.kind === "ideas") speech = speakIdeas();
   else if (intent.kind === "pentagi") speech = speakPentagi();
+  else if (intent.kind === "hf") speech = speakHfIncident();
   else if (intent.kind === "status") speech = speakStatus(await snapshot());
   else if (intent.kind === "kill") {
     await setKill(prisma, intent.on);
@@ -202,7 +278,7 @@ export async function POST(request: Request) {
     speech = {
       mood: glm.installed || glm.channel === "downloading" ? "watching" : "gated",
       intent: "guard",
-      text: `${glm.note} 注入分类器仍是${pin.label}。Hugging Face 当时用 GLM-5.2 读攻击命令；我用它只看己方遥测，动作仍从十五个已签名执行器里选。`,
+      text: `${glm.note} 注入分类器仍是${pin.label}。对话走 GLM-5.3 接口，只看己方遥测，动作仍从十五个已签名执行器里选。`,
     };
   } else if (intent.kind === "guard") {
     const ranked = await rankGuards(prisma, !quiet);

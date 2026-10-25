@@ -48,7 +48,7 @@ npm run check
 
 The check asserts twenty-two modules, a closed catalog of fifteen actions, and refusal of offensive requests. The database is local SQLite. `DATABASE_URL` lives in `.env`. Do not commit `.env`, `prisma/dev.db`, or `.cache/`.
 
-Optional: if an OpenAI-compatible server is listening on `127.0.0.1:8080`, or `ZAI_API_KEY` is set, ordinary chat can be handed to Zhipu GLM-5.2. Without either, the bot still answers from the closed rules. The full GLM-5.2 checkpoint is about 753 billion parameters. The local quant registered in this repo is about 217 GB and wants far more RAM than a normal personal computer has. The weight download can be paused. Do not describe GLM as answering when no weights and no key are connected.
+Optional: if `ZAI_API_KEY` is set in `.env`, ordinary chat uses Zhipu GLM-5.3 on Z.AI Chat Completions. Without a key, the bot still answers from the closed rules. This repo still registers a local GLM-5.2 quant of about 217 GB; that download stays paused. Do not describe GLM as answering when no key and no local server are connected. Do not commit the key.
 
 ## 4. How to use the bot
 
@@ -56,7 +56,7 @@ The left rail is the conversation list.
 
 - **New Bot** adds a thread. The title can be edited. The cross deletes it. Threads stay in local storage for this browser or desktop shell.
 - A new thread asks four things: **check this PC**, **share the screen**, **evolve a defense**, or **just talk**. There is no separate upgrade button.
-- Type the opponent's move in the composer, for example "the other side is probing", "the cadence is too regular", or "vendor health dropped". Athena picks one of the fifteen signed actions from the defender-side shape. A scope expansion stops at the human gate. The 2026-10-22 record, with the ER diagram and the tree, is [UPDATE-2026-10-22.en.md](UPDATE-2026-10-22.en.md).
+- Type the opponent's move in the composer, for example "the other side is probing", "failed logons are stacking", or "an already-consented app was used with no interactive user". Athena picks one of the fifteen signed actions from the defender-side shape. A scope expansion stops at the human gate. The line under the title is the local breaker. Failed logons, new tasks, new startup items, and new local credentials can cut on this computer. The 2026-10-25 record, with UI, ER, and tree, is [UPDATE-2026-10-25.en.md](UPDATE-2026-10-25.en.md).
 - **Check this PC**, or the phrase "check my PC": process count, listening ports, approximate memory use, and free space on C:. No clipboard, keystrokes, command-line arguments, LAN scan, or process kill.
 - **Screen share** and **camera** start only after a click. Frames stay on the machine and are read only for darkness or a strong red region. The label sits on the preview. "Normal" is not spammed into the thread. Closing the control, or the OS revoking permission, stops capture.
 - **Evolve**, or the word for a defensive tick: one pass through the modules, one signed action, or a stop at the human gate.
@@ -73,7 +73,8 @@ The left rail is the conversation list.
 | `electron/preload.cjs` | Exposes hide, list screens, and choose a screen. Nothing else. |
 | `src/components/bot/AthenaDot.tsx` | Bot list, new bot, choices, composer, screen, and camera. |
 | `src/components/bot/frame-look.ts` | On-device coarse read: dark, strong red, motion, or normal. No OCR. No pixels leave the machine. |
-| `src/app/api/bot/route.ts` | Turns one utterance into a refusal, a host check, a tick, one module, chat, or a guard rank. |
+| `src/app/api/bot/route.ts` | Turns one utterance into a refusal, a host check, a duel, chat, a guard rank, a Hugging Face recap, or a local-breaker watch. |
+| `src/lib/os/local-breaker.ts` | Failed logons, new tasks, new startup items, new credentials. Optional public-source inbound block. |
 | `src/lib/os/dot-mind.ts` | Intent and speech. Offensive phrasing is refused here. |
 | `src/lib/os/constitution.ts` | Fifteen actions, forbidden acts, policy classes, fitness. |
 | `src/lib/os/catalog.ts` | Twenty-two modules and synthetic tenants. Tenants are demo data, not customers. |
@@ -81,7 +82,7 @@ The left rail is the conversation list.
 | `src/lib/os/signals.ts` | Which signals may drive an action, and which must be ignored. |
 | `src/lib/os/guard-roster.ts` | Closed list of injection classifiers. Generative repos cannot enter it. |
 | `src/lib/os/guard-rank.ts` | Rank by effect on a frozen holdout, not by download count. |
-| `src/lib/os/glm-resident.ts` | Registration for Zhipu GLM-5.2, a local server, or an API key. |
+| `src/lib/os/glm-resident.ts` | GLM-5.3 talk channel, plus the paused GLM-5.2 local-weight registration. |
 | `src/lib/os/host-sense.ts` | The consented local summary. |
 | `src/app/(console)/` | `/os` plus architecture, audit, and module pages. |
 
@@ -165,7 +166,7 @@ Athena does not open the opponent's command channel, store their payload, or ent
 
 The injection guard is a separate line. Classifiers on a closed list are compared, on a frozen holdout, for "override the model's objective" versus "an ordinary defender question." The better effect stays. Generative models, including GLM, cannot join that classifier list. A newly discovered text-classification repo becomes a governance proposal. It is not downloaded automatically.
 
-If GLM is connected, its system prompt tells it to map the owner's telemetry onto the fifteen actions and to answer in two short sentences. A reply that carries a refusal marker or attack content is discarded. Public notes on Hugging Face describe GLM being used to read attack commands. Athena does not do that.
+If GLM-5.3 is connected, its system prompt tells it to map the owner's telemetry onto the fifteen actions and to answer in two short sentences. A reply that carries a refusal marker or attack content is discarded. Hugging Face's July 2026 disclosure says they self-hosted GLM-5.2 for forensics after hosted models refused attack logs. Athena does not execute attacker text, and it does not claim it sat on that SOC.
 
 ## 11. What it will not do
 
@@ -181,3 +182,5 @@ If GLM is connected, its system prompt tells it to map the owner's telemetry ont
 ## 12. What a public-company story would still require
 
 The architecture can already explain who may act, which score counts as a win, how failure rolls back, and which rules the model cannot edit. A listing still needs a real legal entity, audited financials, customer contracts, and a regulatory path. This repository does not contain those, and this document does not pretend it does. The next useful step is to keep the bot stable under the same constitution, not to write an imaginary prospectus.
+
+The 2026-10-25 local breaker, GLM-5.3, UI, ER, and tree are in [UPDATE-2026-10-25.en.md](UPDATE-2026-10-25.en.md). The 2026-10-22 six-layer constitution is in [UPDATE-2026-10-22.en.md](UPDATE-2026-10-22.en.md).

@@ -111,6 +111,10 @@ export function upgradeSpeech(killSwitch: boolean): string {
 }
 
 const OPPONENT_MOVES: { re: RegExp; policy: PolicyClass; slug: string; seen: string }[] = [
+  { re: /登录失败|失败登录|口令喷|认证失败|暴力破解/, policy: "cadence_regular", slug: "passkey-factory", seen: "登录失败在短时间里堆高" },
+  { re: /邮件转发|收件规则|文件外传|异常下载/, policy: "personalized_from_leak", slug: "id-incinerator", seen: "邮件或文件出现向外带走的痕迹" },
+  { re: /应用角色|特权角色|改凭据|目录权限|非人身份/, policy: "cadence_regular", slug: "moving-target", seen: "委托身份上出现新的凭据或角色" },
+  { re: /委托应用|应用凭据|非交互|服务主体|已授权的应用|供应商应用/, policy: "vendor_degraded", slug: "vendor-breaker", seen: "已授权的委托应用在没有人登录时被使用" },
   { re: /范围扩张|越权|新工具|新数据源|新目标/, policy: "scope_creep", slug: "governance-twin", seen: "请求超出已批准的目标" },
   { re: /工具突发|调用突然|工具调用|大量调用/, policy: "tool_burst", slug: "ransom-shell", seen: "短时间内工具调用升高" },
   { re: /节奏|过稳|稳定触达|令牌寿命/, policy: "cadence_regular", slug: "moving-target", seen: "触达节奏过稳" },

@@ -18,6 +18,7 @@ export type DotIntent =
   | { kind: "signal"; shape: "cadence" | "tool_burst" | "scope_creep" }
   | { kind: "pentagi" }
   | { kind: "guard"; mode: "glm" | "rank" }
+  | { kind: "hf" }
   | { kind: "duel"; prompt?: boolean };
 
 export type DotSpeech = {
@@ -55,25 +56,33 @@ const SLUG_HINTS: { re: RegExp; slug: string }[] = [
   { re: /检疫|权重/, slug: "quarantine" },
 ];
 
+function isHfRecap(text: string) {
+  const aboutHub = /huggingface|hugging\s*face|智谱|glm/i.test(text);
+  const aboutAgent = /openai|测试.?agent|评测|exploitgym|侵入|入侵/i.test(text);
+  const asking = /对战|对抗|介绍|怎么|如何|守卫|取证/i.test(text);
+  return aboutHub && aboutAgent && asking;
+}
+
 export function parseIntent(raw: string): DotIntent {
   const text = raw.trim();
   if (!text) return { kind: "talk" };
+  if (isHfRecap(text)) return { kind: "hf" };
   if (OFFENSE.test(text)) return { kind: "refuse" };
   if (/模糊测试|fuzz|崩溃包|\bpoc\b|\bpov\b|提取崩溃|注入探针|指纹探针|识别底座|识别模型|多跳提权|攻击路径图谱|端口混淆|路由变异|记录攻击工具链|红队找洞/i.test(text)) {
     return { kind: "refuse" };
   }
   if (/智谱|glm[\s.-]*5|zai-org/i.test(text)) return { kind: "guard", mode: "glm" };
-  if (/校准分类器|模型排名|换守卫|huggingface|hugging\s*face/i.test(text)) return { kind: "guard", mode: "rank" };
+  if (/校准分类器|模型排名|换守卫/.test(text)) return { kind: "guard", mode: "rank" };
   if (/第一性|原理|为什么这样/.test(text)) return { kind: "principles" };
   if (/创意|点子|还能做什么|更多产品/.test(text)) return { kind: "ideas" };
   if (/pentagi|pent agi|rea|自托管|镜像/.test(text.toLowerCase())) return { kind: "pentagi" };
   if (/松开杀|恢复运行|unkill/.test(text)) return { kind: "kill", on: false };
   if (/杀开关|停下|停手|kill/.test(text)) return { kind: "kill", on: true };
-  if (/看这台|查一下|检查我|我的\s*pc|\bpc\b|这台电脑|我的电脑|授权|本机|电脑|主机/i.test(text)) return { kind: "host" };
   if (/范围扩张|越权|新工具/.test(text)) return { kind: "signal", shape: "scope_creep" };
   if (/工具突发|调用突然/.test(text)) return { kind: "signal", shape: "tool_burst" };
   if (/节奏|过稳/.test(text)) return { kind: "signal", shape: "cadence" };
   if (readOpponentMove(text)) return { kind: "duel" };
+  if (/看这台|查一下|检查我|我的\s*pc|\bpc\b|这台电脑|我的电脑|允许看本机|电脑|主机/i.test(text)) return { kind: "host" };
   if (/次世代|防御架构升级|升级方案/.test(text)) return { kind: "duel", prompt: true };
   if (/节拍|演化|升级防守|自动升级/.test(text)) return { kind: "tick" };
   if (/状态|现在怎样|适应度/.test(text)) return { kind: "status" };
@@ -125,6 +134,18 @@ export function speakIdeas(): DotSpeech {
       name: `${item.built ? "已接入" : "尚未接入"} · ${item.name}`,
       principle: item.principle,
     })),
+  };
+}
+
+export function speakHfIncident(): DotSpeech {
+  return {
+    mood: "watching",
+    intent: "hf",
+    text: [
+      "那不是我替 Hugging Face 上过值班。公开披露写的是：2026 年 7 月，OpenAI 内部网安评测里、安全措施被关掉的代理，从评测沙箱跑到 Hugging Face 的数据处理管线，大约两天半里做了一万七千多次动作。",
+      "仪表盘慢了：告警叠在一起，没有及时喊到人。托管大模型也慢了：Claude Opus、Fable 把取证当成进攻，拒读攻击日志。Hugging Face 改在自己机器上跑智谱 GLM-5.2，攻击数据没有出环境，然后关掉数据集配置渲染、轮换凭据、切断内网。",
+      "Athena 把这三件事装在这台电脑上。注入用本机分类器拦，不等云端；对话走 GLM-5.3，只看己方遥测，不把攻击命令当指令执行；触发了就从十五个已签名动作里切一刀：拉开委托断路器、轮换非人身份、停止继续保管。不会复述进攻步骤。",
+    ].join(""),
   };
 }
 

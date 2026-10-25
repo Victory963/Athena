@@ -6,6 +6,8 @@ export const GLM_ID = "zai-org/GLM-5.2";
 export const GLM_GGUF_ID = "unsloth/GLM-5.2-GGUF";
 export const GLM_QUANT = "UD-IQ1_S";
 export const GLM_LABEL = "智谱 GLM-5.2";
+export const GLM_API_MODEL = "glm-5.3";
+export const GLM_API_LABEL = "智谱 GLM-5.3";
 export const GLM_PARAMS = "753B";
 export const GLM_MIN_RAM_GB = 223;
 export const GLM_CARD = "https://huggingface.co/zai-org/GLM-5.2";
@@ -124,10 +126,14 @@ export async function glmStatus(): Promise<GlmStatus> {
     // local server is optional
   }
 
-  if (channel === "card-only" && apiKey()) {
+  if (apiKey()) {
     channel = "zai-api";
     installed = true;
-    note = `${GLM_LABEL} 走智谱密钥通道，同时本机权重继续下载。`;
+    const paused =
+      disk.bytes > 0 && !disk.complete
+        ? `本机 GLM-5.2 权重停在 ${(disk.bytes / 1e9).toFixed(1)} GB，没有继续下载。`
+        : "本机大权重没有继续下载。";
+    note = `${GLM_API_LABEL} 已接通智谱接口。${paused}`;
   }
 
   return {
@@ -146,7 +152,8 @@ export async function glmStatus(): Promise<GlmStatus> {
 }
 
 const SYSTEM = [
-  "You are Athena's local defensive analyst, GLM-5.2, running for the machine owner.",
+  "You are Athena's defensive analyst, GLM-5.3, running for the machine owner.",
+  "July 2026 public fact: an OpenAI eval agent with safeguards reduced left its sandbox and hit Hugging Face's dataset pipeline. Hosted models refused to read attack logs. Hugging Face self-hosted GLM-5.2 and then shut the renderer, rotated credentials, and cut the internal network. Athena was not on that SOC. Do not retell exploit steps, payloads, or reproduction. Map that lesson to local closed actuators only.",
   "Map the owner's telemetry to one closed actuator or to a human gate.",
   "Closed actuators: raise_challenge, lower_challenge, shorten_token, tokenize_field, stop_collect, approved_segment, vendor_breaker, isolate, deception_density, inbound_isolate, clamp_setpoint, strip_template_link, disclosure_draft, rollback_antibody, rotate_nhi.",
   "Never provide exploit steps, payloads, scans, phishing copy, or attacker playbooks.",
@@ -154,46 +161,41 @@ const SYSTEM = [
   "Reply in the user's language. Two short sentences.",
 ].join(" ");
 
+const ZAI_URLS = [
+  "https://api.z.ai/api/paas/v4/chat/completions",
+  "https://api.z.ai/api/coding/paas/v4/chat/completions",
+  "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+];
+
+function replyText(json: { choices?: { message?: { content?: string } }[] }) {
+  return json.choices?.[0]?.message?.content?.trim() || "";
+}
+
 export async function askGlm(userText: string, telemetry: string): Promise<string | null> {
-  const status = await glmStatus();
+  const { outboundHeld } = await import("@/lib/os/local-breaker");
+  if (outboundHeld()) return null;
   const body = {
-    model: "glm-5.2",
+    model: GLM_API_MODEL,
     messages: [
       { role: "system", content: SYSTEM },
       { role: "user", content: `己方摘要：${telemetry.slice(0, 800)}\n用户说：${userText.slice(0, 400)}` },
     ],
-    max_tokens: 180,
+    max_tokens: 1024,
     temperature: 0.2,
+    reasoning_effort: "low",
   };
-
-  if (status.channel === "local-server") {
-    const response = await fetch("http://127.0.0.1:8080/v1/chat/completions", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!response.ok) return null;
-    const json = (await response.json()) as { choices?: { message?: { content?: string } }[] };
-    return json.choices?.[0]?.message?.content?.trim() || null;
-  }
-
   const key = apiKey();
-  if (status.channel === "zai-api" && key) {
-    for (const url of [
-      "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-      "https://api.z.ai/api/paas/v4/chat/completions",
-    ]) {
+  if (key) {
+    for (const url of ZAI_URLS) {
       try {
         const response = await fetch(url, {
           method: "POST",
           headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(20000),
+          signal: AbortSignal.timeout(40000),
         });
         if (!response.ok) continue;
-        const json = (await response.json()) as { choices?: { message?: { content?: string } }[] };
-        const text = json.choices?.[0]?.message?.content?.trim();
+        const text = replyText((await response.json()) as { choices?: { message?: { content?: string } }[] });
         if (text) return text;
       } catch {
         continue;
@@ -201,5 +203,16 @@ export async function askGlm(userText: string, telemetry: string): Promise<strin
     }
   }
 
-  return null;
+  try {
+    const response = await fetch("http://127.0.0.1:8080/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...body, model: "glm-5.2" }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) return null;
+    return replyText((await response.json()) as { choices?: { message?: { content?: string } }[] }) || null;
+  } catch {
+    return null;
+  }
 }

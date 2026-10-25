@@ -63,6 +63,7 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
   const [micOn, setMicOn] = useState(false);
   const [screenNote, setScreenNote] = useState("正常");
   const [cameraNote, setCameraNote] = useState("正常");
+  const [guardLine, setGuardLine] = useState("本机断路器在看失败登录、新计划任务和新账户");
   const bottom = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const screenVideo = useRef<HTMLVideoElement>(null);
@@ -83,6 +84,8 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
       current.map((item) => (item.id === botId ? { ...item, lines: [...item.lines, line].slice(-80), choice: false } : item)),
     );
   }
+  const sayRef = useRef(say);
+  sayRef.current = say;
 
   useEffect(() => {
     const saved = readBots();
@@ -116,6 +119,61 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
   }, [bot?.lines, busy, bot?.choice]);
+
+  useEffect(() => {
+    if (!visible || !ready) return;
+    let stop = false;
+    const pull = async () => {
+      try {
+        const response = await fetch("/api/bot", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ watch: true }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!response.ok || stop) return;
+        const data = (await response.json()) as {
+          text?: string | null;
+          watch?: {
+            failed?: number;
+            tasks?: number;
+            starts?: number;
+            users?: number;
+            log?: string;
+            tasksOk?: boolean;
+            startsOk?: boolean;
+            usersOk?: boolean;
+            held?: boolean;
+          };
+        };
+        const watch = data.watch;
+        if (watch) {
+          const auth =
+            watch.log === "denied"
+              ? "失败登录读不到"
+              : watch.log === "skip"
+                ? "这台系统没有本机读数"
+                : `失败登录 ${watch.failed ?? 0}/分`;
+          const tasks = watch.tasksOk === false ? "计划任务读不到" : `新任务 ${watch.tasks ?? 0}`;
+          const starts = watch.startsOk === false ? "启动项读不到" : `新启动项 ${watch.starts ?? 0}`;
+          const users = watch.usersOk === false ? "账户读不到" : `新凭据 ${watch.users ?? 0}`;
+          setGuardLine(
+            ["本机断路", auth, tasks, starts, users, watch.held ? "对外调用已停" : ""].filter(Boolean).join(" · "),
+          );
+        }
+        if (data.text) sayRef.current(data.text);
+      } catch {
+        setGuardLine("本机断路器这一轮没有读到。");
+      }
+    };
+    const boot = window.setTimeout(() => void pull(), 1200);
+    const timer = window.setInterval(() => void pull(), 20000);
+    return () => {
+      stop = true;
+      window.clearTimeout(boot);
+      window.clearInterval(timer);
+    };
+  }, [visible, ready]);
 
   useEffect(() => {
     if (!visible || killSwitch) return;
@@ -422,7 +480,7 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ message: trimmed, consent: nextConsent }),
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(45000),
       });
       const body = (await response.json()) as { text: string; mood: Mood; state?: { killSwitch?: boolean } };
       setMood(body.mood ?? "idle");
@@ -486,6 +544,7 @@ export function AthenaDot({ shell = false }: { shell?: boolean }) {
           </span>
           <input className="athena-title" aria-label="Bot 名称" value={bot?.name ?? ""} onChange={(event) => rename(event.target.value)} />
         </header>
+        <p className="athena-guard">{guardLine}</p>
 
         <div className="athena-thread">
           {bot?.lines.map((line) => (

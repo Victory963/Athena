@@ -148,6 +148,14 @@ body:has(.athena-frame) {
   font-size: 15px;
   font-weight: 600;
 }
+.athena-guard {
+  margin: 0;
+  padding: 0 16px 8px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #6f6a62;
+}
 .athena-hide {
   position: absolute;
   right: 14px;

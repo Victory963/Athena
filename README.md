@@ -44,13 +44,15 @@ npx next dev -p 3030
 npm run bot
 ```
 
-打开 http://127.0.0.1:3030 。左边可以新建 Bot。可选：查这台电脑、共享画面、演化防守、先聊聊。在输入框写对方这一手，Athena 按防守侧形状从十五个动作里选一个。查电脑只读进程数、监听端口、内存占用和 C 盘剩余空间。共享画面和摄像头只有点了才开，画面不外传。进攻请求会被拒绝。
+打开 http://127.0.0.1:3030 。左边可以新建 Bot。可选：查这台电脑、共享画面、演化防守、先聊聊。标题下面是本机断路读数。在输入框写对方这一手，Athena 按防守侧形状从十五个动作里选一个。失败登录、新计划任务、新启动项、新本地凭据会在本机切断，不等云端仪表盘。闲聊在设置了 `ZAI_API_KEY` 时走智谱 GLM-5.3。查电脑只读进程数、监听端口、内存占用和 C 盘剩余空间。共享画面和摄像头只有点了才开，画面不外传。进攻请求会被拒绝。密钥不要提交。
 
-2026-10-22 变更、理念、代码、ER 图和目录树： [中文](docs/UPDATE-2026-10-22.zh.md) · [English](docs/UPDATE-2026-10-22.en.md) · [日本語](docs/UPDATE-2026-10-22.ja.md)
+2026-10-25 本机断路器、GLM-5.3、UI、功能、ER 图和目录树： [中文](docs/UPDATE-2026-10-25.zh.md) · [English](docs/UPDATE-2026-10-25.en.md) · [日本語](docs/UPDATE-2026-10-25.ja.md)
 
-Desktop window: `npm run bot`. Open http://127.0.0.1:3030 . The left rail can create a bot. Choices: check this PC, share the screen, evolve a defense, or just talk. Type the opponent's move in the composer and Athena picks one of the fifteen signed actions from the defender-side shape. A PC check reads process count, listening ports, memory use, and free space on C:. Screen share and the camera start only after a click, and frames are not uploaded. Offensive requests are refused.
+2026-10-22 六层宪法与对话出招： [中文](docs/UPDATE-2026-10-22.zh.md) · [English](docs/UPDATE-2026-10-22.en.md) · [日本語](docs/UPDATE-2026-10-22.ja.md)
 
-デスクトップは `npm run bot`。http://127.0.0.1:3030 を開きます。左で Bot を新規作成できます。この PC を調べる、画面共有、防御の進化、会話、から選べます。入力欄に相手の一手を書くと、防御側の形状から十五動作の一つを選びます。PC 検査はプロセス数、待受ポート、メモリ使用、C: の空きだけです。画面共有とカメラはクリック後だけ開き、フレームは外に送りません。攻撃の依頼は拒否します。
+Desktop window: `npm run bot`. Open http://127.0.0.1:3030 . The left rail can create a bot. Choices: check this PC, share the screen, evolve a defense, or just talk. The line under the title is the local breaker. Type the opponent's move and Athena picks one of the fifteen signed actions. Failed logons, new tasks, new startup items, and new local credentials can cut on this computer. Chat uses GLM-5.3 when `ZAI_API_KEY` is set. A PC check reads process count, listening ports, memory use, and free space on C:. Screen share and the camera start only after a click. Offensive requests are refused. Do not commit the key.
+
+デスクトップは `npm run bot`。http://127.0.0.1:3030 を開きます。左で Bot を新規作成できます。題名の下は本機ブレーカです。入力欄に相手の一手を書くと、十五動作の一つを選びます。失敗ログオン、新しいタスク、新しいスタートアップ、新しいローカル資格情報はこの機械で切断できます。`ZAI_API_KEY` があるとき、雑談は GLM-5.3 です。PC 検査はプロセス数、待受ポート、メモリ、C: の空きだけです。画面共有とカメラはクリック後だけ開きます。攻撃の依頼は拒否します。鍵はコミットしません。
 
 详细架构、二十二个模块、十五个动作、代码地图和边界： [中文](docs/ARCHITECTURE.zh.md) · [English](docs/ARCHITECTURE.en.md) · [日本語](docs/ARCHITECTURE.ja.md)
 
